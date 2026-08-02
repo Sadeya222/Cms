@@ -1,0 +1,19 @@
+{
+  "id": "vid_0002",
+  "title": "Edge Rendering Explained: CDNs and Core Web Vitals",
+  "slug": "edge-rendering-explained-cdns-and-core-web-vitals",
+  "description": "Edge Rendering Explained: CDNs and Core Web Vitals. In this video we take a deep, practical look at devops — clear explanations, real examples, and takeaways you can apply immediately. Part of the Technology collection on StreamVault.",
+  "category": "Technology",
+  "subcategory": "DevOps",
+  "tags": [
+    "webdev",
+    "javascript",
+    "astro"
+  ],
+  "duration": "PT22M42S",
+  "publishedDate": "2025-12-11T10:33:58.271Z",
+  "streamEmbedUrl": "https://lulustream.com/embed/edge-rendering-explained-cdns-and-core-web-vitals",
+  "thumbnailUrl": "https://picsum.photos/seed/edge-rendering-explained-cdns-and-core-web-vitals/640/360",
+  "featured": false,
+  "provider": "lulustream"
+}

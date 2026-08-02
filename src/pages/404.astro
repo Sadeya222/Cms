@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Page not found" description="The page you requested could not be found." noindex={true}>
+  <div class="container notfound">
+    <div class="code" aria-hidden="true">404</div>
+    <h1>This page is off air</h1>
+    <p>
+      The page you're looking for doesn't exist, was moved, or never made it to
+      the library. Let's get you back to the good stuff.
+    </p>
+    <p>
+      <a class="btn" href="/">Back to home</a>
+    </p>
+  </div>
+</BaseLayout>

@@ -1,0 +1,32 @@
+{
+  "name": "streamvault",
+  "version": "2.0.0",
+  "description": "StreamVault — production-grade, zero-database video streaming platform built on Astro SSG, Git flat-file content, Decap CMS, Pagefind search, and offloaded media streaming (StreamA2Z + LuluStream embeds).",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "sync": "astro sync",
+    "build": "astro build && pagefind --site dist && node scripts/build-video-sitemap.mjs",
+    "postbuild:index": "pagefind --site dist",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "seed": "node scripts/generate-sample-data.mjs",
+    "audit": "npm audit --audit-level=high"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "@fontsource-variable/inter": "^5.2.6",
+    "astro": "^7.1.6",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "pagefind": "^1.5.2",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,333 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import VideoCard from '../components/VideoCard.astro';
+import VideoFacade from '../components/VideoFacade.astro';
+import { getAllVideos, getFeatured, getCategoryIndex } from '../utils/queries';
+import { SITE } from '../config/site';
+
+const featured = await getFeatured(8);
+const latest = (await getAllVideos()).slice(0, 12);
+const categories = await getCategoryIndex();
+const allVideos = await getAllVideos();
+const spotlight = featured[0] ?? allVideos[0];
+
+const websiteLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE.name,
+  url: new URL('/', Astro.site).href,
+  description: SITE.description,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: new URL('/search?q={query}', Astro.site).href,
+    },
+    'query-input': 'required name=query',
+  },
+};
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: SITE.name,
+  url: new URL('/', Astro.site).href,
+  description: SITE.description,
+  hasPart: latest.map((v) => ({
+    '@type': 'VideoObject',
+    name: v.title,
+    url: new URL(`/watch/${v.slug}`, Astro.site).href,
+    thumbnailUrl: v.thumbnailUrl,
+    uploadDate: v.publishedDate,
+  })),
+};
+---
+
+<BaseLayout title={SITE.title} description={SITE.description} jsonLd={[websiteLd, collectionLd]}>
+  <section class="hero container">
+    <span class="hero-kicker"><span class="dot" aria-hidden="true"></span> 100% static · zero tracking · edge-delivered</span>
+    <h1>
+      Stream more. <span class="grad">Wait less.</span>
+    </h1>
+    <p>
+      {SITE.description} Every page pre-rendered to static HTML, every video
+      streamed from offloaded media hosts — nothing slows you down.
+    </p>
+    <div class="hero-actions">
+      <a class="btn" href="/search">
+        Search the library
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </a>
+      {categories[0] && <a class="btn btn-ghost" href={`/category/${categories[0].slug}/1`}>Browse {categories[0].name}</a>}
+    </div>
+
+    <div class="hero-stats" role="list" aria-label="Library statistics">
+      <div class="stat" role="listitem">
+        <b>{allVideos.length}</b>
+        <span>Videos</span>
+      </div>
+      <div class="stat" role="listitem">
+        <b>{categories.length}</b>
+        <span>Categories</span>
+      </div>
+      <div class="stat" role="listitem">
+        <b>0&nbsp;KB</b>
+        <span>JS on load</span>
+      </div>
+      <div class="stat" role="listitem">
+        <b>2</b>
+        <span>Media hosts</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="container">
+    <!-- Featured spotlight -->
+    {
+      spotlight && (
+        <section class="section" aria-labelledby="featured-title">
+          <div class="section-head">
+            <div>
+              <h2 id="featured-title">Featured spotlight</h2>
+              <p class="section-sub">Hand-picked by the editorial team</p>
+            </div>
+            <a class="view-all" href={`/watch/${spotlight.slug}`}>
+              Watch now
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+
+          <div class="spotlight">
+            <a
+              class="spotlight-info"
+              href={`/watch/${spotlight.slug}`}
+              data-pagefind-ignore="all"
+            >
+              <span class={`chip chip-${spotlight.category.toLowerCase()}`}>{spotlight.category}</span>
+              <h3>{spotlight.title}</h3>
+              <p>{spotlight.description}</p>
+              <span class="btn btn-sm">Play now · {spotlight.subcategory}</span>
+            </a>
+            <VideoFacade
+              embedUrl={spotlight.streamEmbedUrl}
+              thumbnailUrl={spotlight.posterUrl ?? spotlight.thumbnailUrl}
+              title={spotlight.title}
+              provider={spotlight.provider}
+            />
+          </div>
+        </section>
+      )
+    }
+
+    <!-- Browse categories -->
+    {
+      categories.length > 0 && (
+        <section class="section" aria-labelledby="browse-title">
+          <div class="section-head">
+            <div>
+              <h2 id="browse-title">Browse by category</h2>
+              <p class="section-sub">Curated collections across the library</p>
+            </div>
+          </div>
+          <div class="cat-cards">
+            {categories.map((c, i) => (
+              <a
+                class={`cat-card cat-card-${i % 3}`}
+                href={`/category/${c.slug}/1`}
+              >
+                <span class="cat-card-icon" aria-hidden="true">
+                  {i === 0 ? '⚙️' : i === 1 ? '🎬' : '🎓'}
+                </span>
+                <span class="cat-card-name">{c.name}</span>
+                <span class="cat-card-count">{c.count} videos</span>
+                <span class="cat-card-arrow" aria-hidden="true">→</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- Featured grid -->
+    {
+      featured.length > 0 && (
+        <section class="section" aria-labelledby="featured-grid-title">
+          <div class="section-head">
+            <div>
+              <h2 id="featured-grid-title">Featured</h2>
+              <p class="section-sub">Top picks across every category</p>
+            </div>
+          </div>
+          <div class="video-grid">
+            {featured.map((video, i) => (
+              <VideoCard video={video} eager={i < 4} />
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- Latest -->
+    <section class="section" aria-labelledby="latest-title">
+      <div class="section-head">
+        <div>
+          <h2 id="latest-title">Latest videos</h2>
+          <p class="section-sub">Fresh from the editorial queue</p>
+        </div>
+        {categories[0] && (
+          <a class="view-all" href={`/category/${categories[0].slug}/1`}>
+            View all
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+        )}
+      </div>
+      {
+        latest.length > 0 ? (
+          <div class="video-grid">
+            {latest.map((video) => (
+              <VideoCard video={video} />
+            ))}
+          </div>
+        ) : (
+          <div class="empty">
+            <div class="empty-icon" aria-hidden="true">🎬</div>
+            <p>No videos published yet. Add your first video from the <a href="/admin/">admin panel</a>.</p>
+          </div>
+        )
+      }
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Spotlight: editorial feature block */
+  .spotlight {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elev);
+    box-shadow: var(--shadow);
+  }
+  .spotlight-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: clamp(22px, 3.6vw, 40px);
+    color: var(--text);
+    background:
+      radial-gradient(22rem 12rem at -10% -20%, rgba(91, 140, 255, 0.18), transparent 60%),
+      var(--bg-elev);
+  }
+  .spotlight-info:hover {
+    color: var(--text);
+  }
+  .spotlight-info h3 {
+    font-size: clamp(1.35rem, 3vw, 2rem);
+    margin: 0;
+  }
+  .spotlight-info p {
+    color: var(--text-dim);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .spotlight-info .btn {
+    margin-top: 6px;
+  }
+
+  /* Category cards */
+  .cat-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .cat-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 24px 22px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    color: var(--text);
+    overflow: hidden;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  }
+  .cat-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+  .cat-card-0::after {
+    background: radial-gradient(16rem 9rem at 100% 0%, rgba(91, 140, 255, 0.22), transparent 65%);
+  }
+  .cat-card-1::after {
+    background: radial-gradient(16rem 9rem at 100% 0%, rgba(255, 91, 140, 0.2), transparent 65%);
+  }
+  .cat-card-2::after {
+    background: radial-gradient(16rem 9rem at 100% 0%, rgba(53, 208, 165, 0.2), transparent 65%);
+  }
+  .cat-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-sm);
+    color: var(--text);
+  }
+  .cat-card:hover::after {
+    opacity: 1;
+  }
+  .cat-card-icon {
+    font-size: 1.7rem;
+  }
+  .cat-card-name {
+    font-size: 1.12rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .cat-card-count {
+    color: var(--text-faint);
+    font-size: 0.85rem;
+  }
+  .cat-card-arrow {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .cat-card:hover .cat-card-arrow {
+    opacity: 0.7;
+    transform: translate(3px, -50%);
+  }
+
+  @media (max-width: 860px) {
+    .spotlight {
+      grid-template-columns: 1fr;
+    }
+    .spotlight-info p {
+      -webkit-line-clamp: 2;
+    }
+  }
+</style>

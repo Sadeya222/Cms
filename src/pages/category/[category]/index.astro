@@ -1,0 +1,30 @@
+---
+import { getCategoryIndex } from '../../../utils/queries';
+
+// Bare /category/[category] redirects to page 1 so no route 404s.
+export async function getStaticPaths() {
+  const categories = await getCategoryIndex();
+  return categories.map((c) => ({ params: { category: c.slug } }));
+}
+
+const { category } = Astro.params;
+const target = `/category/${category}/1`;
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <link rel="canonical" href={target} />
+    <meta name="robots" content="noindex,follow" />
+    <title>Redirecting…</title>
+    <script is:inline define:vars={{ target }}>
+      window.location.replace(target);
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to <a href={target}>{target}</a>…</p>
+  </body>
+</html>

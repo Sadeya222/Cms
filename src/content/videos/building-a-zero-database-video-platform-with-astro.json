@@ -1,0 +1,21 @@
+{
+  "id": "vid_0001",
+  "title": "Building a Zero-Database Video Platform with Astro",
+  "slug": "building-a-zero-database-video-platform-with-astro",
+  "description": "Building a Zero-Database Video Platform with Astro. In this video we take a deep, practical look at ai & ml — clear explanations, real examples, and takeaways you can apply immediately. Part of the Technology collection on StreamVault.",
+  "category": "Technology",
+  "subcategory": "AI & ML",
+  "tags": [
+    "astro",
+    "performance",
+    "edge",
+    "ssg",
+    "javascript"
+  ],
+  "duration": "PT22M35S",
+  "publishedDate": "2026-05-13T10:33:58.271Z",
+  "streamEmbedUrl": "https://streama2z.com/embed/building-a-zero-database-video-platform-with-astro",
+  "thumbnailUrl": "https://picsum.photos/seed/building-a-zero-database-video-platform-with-astro/640/360",
+  "featured": true,
+  "provider": "streama2z"
+}

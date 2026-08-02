@@ -1,0 +1,196 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import VideoFacade from '../../components/VideoFacade.astro';
+import VideoCard from '../../components/VideoCard.astro';
+import { getAllVideos } from '../../utils/queries';
+import {
+  findRelated,
+  formatDate,
+  categorySlug,
+  truncate,
+  resolveProvider,
+  parseISODuration,
+} from '../../utils/content';
+import { SITE, RELATED_LIMIT } from '../../config/site';
+
+export async function getStaticPaths() {
+  const videos = await getAllVideos();
+  return videos.map((video) => ({
+    params: { slug: video.slug },
+    props: { video },
+  }));
+}
+
+const { video } = Astro.props;
+const allVideos = await getAllVideos();
+const relatedVideos = findRelated(video, allVideos, RELATED_LIMIT);
+const canonicalURL = new URL(Astro.url.pathname, Astro.site).href;
+const provider = resolveProvider(video.provider, video.streamEmbedUrl);
+const { label: durationLabel } = parseISODuration(video.duration);
+const catSlug = categorySlug(video.category);
+
+// VideoObject structured data for Google Rich Results.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'VideoObject',
+  name: video.title,
+  description: video.description,
+  thumbnailUrl: [video.thumbnailUrl],
+  uploadDate: video.publishedDate,
+  duration: video.duration,
+  embedUrl: video.streamEmbedUrl,
+  contentUrl: video.streamEmbedUrl,
+  genre: video.category,
+  keywords: (video.tags || []).join(', '),
+  publisher: {
+    '@type': 'Organization',
+    name: SITE.name,
+    logo: {
+      '@type': 'ImageObject',
+      url: new URL('/favicon.svg', Astro.site).href,
+    },
+  },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).href },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: video.category,
+      item: new URL(`/category/${catSlug}/1`, Astro.site).href,
+    },
+    { '@type': 'ListItem', position: 3, name: video.title, item: canonicalURL },
+  ],
+};
+---
+
+<BaseLayout
+  title={video.title}
+  description={truncate(video.description, 160)}
+  canonical={canonicalURL}
+  ogType="video.other"
+  image={video.thumbnailUrl}
+  jsonLd={[jsonLd, breadcrumbLd]}
+>
+  <article
+    class="container video-container"
+    data-pagefind-body
+    data-pagefind-meta={`thumbnail:${video.thumbnailUrl}`}
+    data-pagefind-filter={`category:${video.category}`}
+  >
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <span class="sep">/</span>
+      <a href={`/category/${catSlug}/1`}>{video.category}</a>
+      <span class="sep">/</span>
+      <span>{video.subcategory}</span>
+    </nav>
+
+    <div class="watch-layout">
+      <div class="watch-main">
+        <h1 class="watch-title">{video.title}</h1>
+
+        <div class="metadata">
+          <time datetime={video.publishedDate}>Published {formatDate(video.publishedDate)}</time>
+          <span class="sep">·</span>
+          <span>{video.category} › {video.subcategory}</span>
+          {durationLabel && (
+            <>
+              <span class="sep">·</span>
+              <span>{durationLabel}</span>
+            </>
+          )}
+        </div>
+
+        <div class="player-shell">
+          <VideoFacade
+            embedUrl={video.streamEmbedUrl}
+            thumbnailUrl={video.posterUrl ?? video.thumbnailUrl}
+            title={video.title}
+            provider={video.provider}
+          />
+
+          <div class="action-row">
+            {provider.id !== 'other' && (
+              <span
+                class="provider-badge"
+                style={`--provider-color:${provider.color}`}
+                title={`Streamed via ${provider.label}`}
+              >
+                {provider.label}
+              </span>
+            )}
+            <span class="spacer" aria-hidden="true"></span>
+            <button id="share-btn" class="action-btn" type="button" data-url={canonicalURL}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span class="share-label">Share</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="description">{video.description}</div>
+
+        {
+          video.tags?.length > 0 && (
+            <div class="tag-row" aria-label="Tags">
+              {video.tags.map((tag) => (
+                <a href={`/search?q=${encodeURIComponent(tag)}`}>#{tag}</a>
+              ))}
+            </div>
+          )
+        }
+      </div>
+
+      {
+        relatedVideos.length > 0 && (
+          <aside class="related-section" data-pagefind-ignore="all" aria-label="Related videos">
+            <h2>Related Videos</h2>
+            <div class="related-grid">
+              {relatedVideos.map((rel) => (
+                <VideoCard video={rel} width={220} height={124} compact />
+              ))}
+            </div>
+          </aside>
+        )
+      }
+    </div>
+  </article>
+</BaseLayout>
+
+<script is:inline>
+  // Copy-to-clipboard for the Share button (progressive enhancement).
+  (function () {
+    const btn = document.getElementById('share-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const url = btn.getAttribute('data-url') || window.location.href;
+      const label = btn.querySelector('.share-label');
+      try {
+        await navigator.clipboard.writeText(url);
+        if (label) {
+          const prev = label.textContent;
+          label.textContent = 'Link copied!';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            label.textContent = prev;
+            btn.classList.remove('copied');
+          }, 2000);
+        }
+      } catch {
+        // Clipboard API unavailable (e.g. non-secure context) — fall back to
+        // selecting the URL so the user can copy manually.
+        window.prompt('Copy the video link:', url);
+      }
+    });
+  })();
+</script>

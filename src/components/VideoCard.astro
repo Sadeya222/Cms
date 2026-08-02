@@ -1,0 +1,62 @@
+---
+import { parseISODuration, categorySlug, resolveProvider } from '../utils/content';
+
+export interface Props {
+  video: {
+    slug: string;
+    title: string;
+    thumbnailUrl: string;
+    duration: string;
+    category: string;
+    subcategory?: string;
+    provider?: string;
+    streamEmbedUrl?: string;
+  };
+  /** Render dimensions differ between main grid and related rail. */
+  width?: number;
+  height?: number;
+  /** First row of the homepage/category grid should load eagerly for LCP. */
+  eager?: boolean;
+  /** Compact horizontal variant used in the related rail. */
+  compact?: boolean;
+}
+
+const { video, width = 320, height = 180, eager = false, compact = false } = Astro.props;
+const { label } = parseISODuration(video.duration);
+const provider = resolveProvider(video.provider, video.streamEmbedUrl ?? '');
+const catSlug = categorySlug(video.category);
+---
+
+<article class={`video-card${compact ? ' compact' : ''}`}>
+  <a href={`/watch/${video.slug}`} data-pagefind-ignore="all">
+    <div class="thumb">
+      <img
+        src={video.thumbnailUrl}
+        alt={video.title}
+        width={width}
+        height={height}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchpriority={eager ? 'high' : 'auto'}
+      />
+      {provider.id !== 'other' && (
+        <span
+          class="provider-badge thumb-badge"
+          style={`--provider-color:${provider.color}`}
+          title={`Streamed via ${provider.label}`}
+        >
+          {provider.label}
+        </span>
+      )}
+      {label && <span class="duration">{label}</span>}
+      <span class="play-badge" aria-hidden="true"><span>▶</span></span>
+    </div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class={`chip chip-${catSlug}`}>{video.category}</span>
+        {video.subcategory && <span class="sub">{video.subcategory}</span>}
+      </div>
+      <h3>{video.title}</h3>
+    </div>
+  </a>
+</article>
