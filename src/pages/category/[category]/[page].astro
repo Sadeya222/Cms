@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import VideoCard from '../../../components/VideoCard.astro';
+import { getAllVideos, getCategoryIndex } from '../../../utils/queries';
+import { categorySlug } from '../../../utils/content';
+import { SITE, PAGE_SIZE } from '../../../config/site';
+import type { GetStaticPaths, Page } from 'astro';
+import type { Video } from '../../../utils/queries';
+
+/**
+ * Dynamic Static Pagination Engine.
+ *
+ * Astro's paginate() compiles clean, crawlable routes at build time
+ * (/category/technology/1, /category/technology/2, ...) — no runtime LIMIT/OFFSET
+ * queries, no routing failures. Each page carries a self-referential canonical.
+ */
+export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
+  const allVideos = await getAllVideos();
+  const categories = [...new Set(allVideos.map((v) => v.category))];
+
+  return categories.flatMap((category) => {
+    const filtered = allVideos.filter((v) => v.category === category);
+    return paginate(filtered, {
+      params: { category: categorySlug(category) },
+      props: { categoryName: category },
+      pageSize: PAGE_SIZE,
+    });
+  });
+}
+
+interface Props {
+  page: Page<Video>;
+  categoryName: string;
+}
+const { page, categoryName } = Astro.props as Props;
+const { category } = Astro.params;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site).href;
+const allCategories = await getCategoryIndex();
+
+const title =
+  page.currentPage > 1
+    ? `${categoryName} — Page ${page.currentPage}`
+    : `${categoryName} Videos`;
+const description = `Browse ${page.total} ${categoryName.toLowerCase()} videos on ${SITE.name}. Page ${page.currentPage} of ${page.lastPage}.`;
+
+const itemListLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: page.data.map((video, i) => ({
+    '@type': 'ListItem',
+    position: (page.currentPage - 1) * PAGE_SIZE + i + 1,
+    url: new URL(`/watch/${video.slug}`, Astro.site).href,
+    name: video.title,
+  })),
+};
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={canonicalURL}
+  jsonLd={itemListLd}
+  prev={page.url.prev}
+  next={page.url.next}
+>
+  <div class="container">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <span class="sep">/</span>
+      <span>{categoryName}</span>
+    </nav>
+
+    <header class="page-head">
+      <h1>{categoryName}</h1>
+      <p>Curated {categoryName.toLowerCase()} videos — from quick explainers to deep dives.</p>
+      <span class="page-count">
+        {page.total} video{page.total === 1 ? '' : 's'}
+        {page.lastPage > 1 && <> · Page {page.currentPage} of {page.lastPage}</>}
+      </span>
+    </header>
+
+    <nav class="cat-nav" aria-label="All categories">
+      {
+        allCategories.map((c) => (
+          <a
+            href={`/category/${c.slug}/1`}
+            aria-current={c.slug === category ? 'page' : undefined}
+          >
+            {c.name} <span class="count">({c.count})</span>
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="video-grid">
+      {page.data.map((video, i) => <VideoCard video={video} eager={i < 4} />)}
+    </div>
+
+    <nav class="pagination-controls" aria-label="Pagination">
+      {page.url.prev ? (
+        <a href={page.url.prev} rel="prev">« Previous</a>
+      ) : (
+        <span aria-hidden="true"></span>
+      )}
+      <span class="page-status">Page {page.currentPage} of {page.lastPage}</span>
+      {page.url.next ? (
+        <a href={page.url.next} rel="next">Next »</a>
+      ) : (
+        <span aria-hidden="true"></span>
+      )}
+    </nav>
+  </div>
+</BaseLayout>

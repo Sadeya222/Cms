@@ -1,0 +1,128 @@
+---
+import { SITE } from '../config/site';
+import { getCategoryIndex } from '../utils/queries';
+
+const categories = await getCategoryIndex();
+const path = Astro.url.pathname;
+---
+
+<header class="site-header">
+  <div class="container nav">
+    <a href="/" class="brand" aria-label={`${SITE.name} home`}>
+      <span class="logo" aria-hidden="true">▶</span>
+      <span>{SITE.name}</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Categories">
+      <a href="/" aria-current={path === '/' ? 'page' : undefined}>Home</a>
+      {
+        categories.map((c) => (
+          <a
+            href={`/category/${c.slug}/1`}
+            aria-current={path.startsWith(`/category/${c.slug}`) ? 'page' : undefined}
+          >
+            {c.name}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="nav-actions">
+      <div class="nav-search">
+        <a href="/search" aria-label="Search videos">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Search</span>
+        </a>
+      </div>
+
+      <button
+        id="nav-toggle"
+        class="nav-toggle"
+        type="button"
+        aria-label="Toggle navigation menu"
+        aria-expanded="false"
+        aria-controls="mobile-nav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </div>
+
+  <nav id="mobile-nav" class="mobile-nav container" aria-label="Mobile navigation" hidden>
+    <a href="/" aria-current={path === '/' ? 'page' : undefined}>Home</a>
+    {
+      categories.map((c) => (
+        <a
+          href={`/category/${c.slug}/1`}
+          aria-current={path.startsWith(`/category/${c.slug}`) ? 'page' : undefined}
+        >
+          {c.name}
+        </a>
+      ))
+    }
+    <a class="mobile-search" href="/search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      Search videos
+    </a>
+  </nav>
+</header>
+
+<script is:inline>
+  // Minimal progressive enhancement: mobile menu toggle. The site works fully
+  // without JS — this only adds the slide-down drawer on small screens.
+  (function () {
+    const toggle = document.getElementById('nav-toggle');
+    const panel = document.getElementById('mobile-nav');
+    if (!toggle || !panel) return;
+
+    function sync() {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      if (open) {
+        panel.hidden = true;
+        panel.classList.remove('open');
+      } else {
+        panel.hidden = false;
+        panel.classList.add('open');
+      }
+    }
+
+    toggle.addEventListener('click', sync);
+
+    // Close the drawer after choosing a destination.
+    panel.addEventListener('click', (e) => {
+      if (e.target.closest('a')) {
+        panel.hidden = true;
+        panel.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Close with Escape.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !panel.hidden) {
+        panel.hidden = true;
+        panel.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
+      }
+    });
+
+    // Keep the drawer in sync when the viewport crosses the breakpoint.
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768 && !panel.hidden) {
+        panel.hidden = true;
+        panel.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,81 @@
+backend:
+  name: git-gateway
+  branch: main
+  # commit_messages customise the auto-commit text Decap writes to Git.
+  commit_messages:
+    create: 'content: create video "{{slug}}"'
+    update: 'content: update video "{{slug}}"'
+    delete: 'content: delete video "{{slug}}"'
+
+# Editorial workflow gives a draft -> review -> publish pipeline via PRs.
+publish_mode: editorial_workflow
+
+# Local backend: run `npx decap-server` + set this true for offline editing.
+local_backend: true
+
+media_folder: "public/uploads"
+public_folder: "/uploads"
+
+site_url: https://streamvault.pages.dev
+display_url: https://streamvault.pages.dev
+logo_url: /favicon.svg
+
+collections:
+  - name: "videos"
+    label: "Videos"
+    label_singular: "Video"
+    description: "Video metadata stored as flat JSON in src/content/videos/."
+    folder: "src/content/videos"
+    create: true
+    slug: "{{fields.slug}}"
+    identifier_field: title
+    extension: json
+    format: json
+    summary: "{{title}} — {{category}} ({{publishedDate | date('YYYY-MM-DD')}})"
+    sortable_fields: ['publishedDate', 'title', 'category']
+    view_filters:
+      - label: "Featured"
+        field: featured
+        pattern: true
+    fields:
+      - { label: "ID", name: "id", widget: "uid", prefix: "vid_", hint: "Auto-generated unique id." }
+      - { label: "Title", name: "title", widget: "string" }
+      - {
+          label: "Slug",
+          name: "slug",
+          widget: "string",
+          pattern: ['^[a-z0-9]+(?:-[a-z0-9]+)*$', "Lowercase, hyphen-separated (kebab-case)."],
+          hint: "URL segment: /watch/your-slug"
+        }
+      - { label: "Description", name: "description", widget: "text" }
+      - {
+          label: "Category",
+          name: "category",
+          widget: "select",
+          options: ["Technology", "Entertainment", "Education"]
+        }
+      - { label: "Subcategory", name: "subcategory", widget: "string" }
+      - { label: "Tags", name: "tags", widget: "list", default: [] }
+      - {
+          label: "Duration (ISO 8601, e.g. PT05M30S)",
+          name: "duration",
+          widget: "string",
+          pattern: ['^PT(\d+H)?(\d+M)?(\d+S)?$', "ISO 8601 duration, e.g. PT08M15S"]
+        }
+      - { label: "Published Date", name: "publishedDate", widget: "datetime", format: "YYYY-MM-DDTHH:mm:ss.SSSZ" }
+      - {
+          label: "Media Provider",
+          name: "provider",
+          widget: "select",
+          options: [
+            { label: "Auto-detect (from embed URL)", value: "auto" },
+            { label: "StreamA2Z", value: "streama2z" },
+            { label: "LuluStream", value: "lulustream" },
+          ],
+          default: "auto",
+          hint: "Which media host serves the embeddable player. Auto-detects from the embed URL host."
+        }
+      - { label: "StreamA2Z / LuluStream Embed URL", name: "streamEmbedUrl", widget: "string", pattern: ['^https?://', "Must be a full URL."] }
+      - { label: "StreamA2Z Thumbnail URL", name: "thumbnailUrl", widget: "string", pattern: ['^https?://', "Must be a full URL."] }
+      - { label: "Poster URL (optional)", name: "posterUrl", widget: "string", required: false, pattern: ['^https?://', "Must be a full URL."] }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }

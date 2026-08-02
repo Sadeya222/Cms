@@ -1,0 +1,119 @@
+---
+/**
+ * Click-to-Play Facade Pattern.
+ *
+ * Renders ONLY a lightweight poster image + button on initial load. The heavy
+ * third-party <iframe> (scripts, trackers, media) is injected into the DOM
+ * exclusively on the user's explicit click. This protects LCP and INP/FID and
+ * keeps the Lighthouse Performance score at 100.
+ */
+import { resolveProvider } from '../utils/content';
+
+export interface Props {
+  embedUrl: string;
+  thumbnailUrl: string;
+  title: string;
+  provider?: string;
+}
+
+const { embedUrl, thumbnailUrl, title, provider: providerId } = Astro.props;
+const provider = resolveProvider(providerId, embedUrl);
+---
+
+<div
+  id="player-facade"
+  class="facade-box"
+  data-embed={embedUrl}
+  data-title={title}
+  style={`background-image:url('${thumbnailUrl}');`}
+  role="button"
+  tabindex="0"
+  aria-label={`Play video: ${title}`}
+>
+  <div class="facade-top">
+    {provider.id !== 'other' && (
+      <span
+        class="provider-badge"
+        style={`--provider-color:${provider.color}`}
+        title={`Streamed via ${provider.label}`}
+      >
+        {provider.label}
+      </span>
+    )}
+  </div>
+
+  <button id="play-btn" class="play-btn" type="button" aria-label={`Play video: ${title}`}>
+    <span class="tri" aria-hidden="true">▶</span>
+    <span class="play-label">Play Video</span>
+  </button>
+
+  <span class="facade-hint" aria-hidden="true">Click to load the player</span>
+</div>
+
+<style>
+  /* Loading spinner shown while the embed initialises (after click). */
+  .facade-box.is-loading::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    z-index: 3;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--brand);
+    animation: facade-spin 0.8s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes facade-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
+<script>
+  // Progressive enhancement — the page is fully functional server-side; this
+  // only upgrades the poster into a live player on demand.
+  const facade = document.getElementById('player-facade');
+
+  function inject() {
+    if (!facade || facade.classList.contains('is-playing')) return;
+    const embed = facade.getAttribute('data-embed');
+    const title = facade.getAttribute('data-title') || 'Video player';
+    if (!embed) return;
+
+    facade.classList.add('is-loading');
+
+    const iframe = document.createElement('iframe');
+    iframe.src = embed;
+    iframe.title = title;
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.setAttribute(
+      'allow',
+      'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+    );
+    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    iframe.setAttribute('loading', 'eager');
+
+    // Let the iframe's own first paint replace the spinner.
+    iframe.addEventListener('load', () => facade.classList.remove('is-loading'));
+    // Safety net: never leave the spinner up if the load event is missed.
+    window.setTimeout(() => facade.classList.remove('is-loading'), 8000);
+
+    facade.classList.add('is-playing');
+    facade.innerHTML = '';
+    facade.appendChild(iframe);
+    facade.removeAttribute('role');
+    facade.removeAttribute('tabindex');
+  }
+
+  facade?.addEventListener('click', inject);
+  facade?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      inject();
+    }
+  });
+</script>

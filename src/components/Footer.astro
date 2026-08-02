@@ -1,0 +1,65 @@
+---
+import { SITE } from '../config/site';
+import { getCategoryIndex, getAllVideos } from '../utils/queries';
+
+const categories = await getCategoryIndex();
+const videos = await getAllVideos();
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a href="/" class="brand" aria-label={`${SITE.name} home`}>
+        <span class="logo" aria-hidden="true">▶</span>
+        <span>{SITE.name}</span>
+      </a>
+      <p>
+        Zero-database, edge-delivered video streaming. Every page pre-compiled
+        to static HTML — fast, private, and dependable.
+      </p>
+      <span class="footer-status">
+        <span class="dot" aria-hidden="true"></span>
+        All systems operational · {videos.length} videos indexed
+      </span>
+    </div>
+
+    <div>
+      <h3>Browse</h3>
+      <nav aria-label="Browse categories">
+        {categories.map((c) => <a href={`/category/${c.slug}/1`}>{c.name}</a>)}
+      </nav>
+    </div>
+
+    <div>
+      <h3>Explore</h3>
+      <nav aria-label="Explore">
+        <a href="/">Home</a>
+        <a href="/search">Search library</a>
+        <a href="/sitemap-index.xml">Sitemap</a>
+      </nav>
+    </div>
+
+    <div>
+      <h3>Manage</h3>
+      <nav aria-label="Manage">
+        <a href="/admin/" rel="nofollow">Content admin</a>
+        <a href="/sitemap-video.xml">Video sitemap</a>
+        <a href="/robots.txt">robots.txt</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="container footer-bottom">
+    <span>© {year} {SITE.name}. All rights reserved.</span>
+    <span class="made-with">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
+        <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path>
+        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path>
+        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path>
+      </svg>
+      Built with Astro · Zero-database architecture
+    </span>
+  </div>
+</footer>
